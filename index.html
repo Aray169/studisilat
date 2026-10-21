@@ -19,7 +19,7 @@ main{max-width:720px;margin:0 auto;padding:14px}
 .card h2{margin:0 0 6px;font-size:18px}
 .m{color:var(--mut);font-size:14px}
 .row{display:grid;grid-template-columns:1fr auto;gap:6px;margin:8px 0;padding:8px;background:#f6f7f9;border-radius:8px}
-.row select,.row input{grid-column:1/-1}
+.row select,.row input,.row textarea{grid-column:1/-1}
 select,input,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
 button.p{width:100%;padding:14px;border:0;border-radius:10px;background:var(--red);color:#fff;font:700 16px inherit;margin:4px 0 12px}
 button.s{padding:9px 12px;border:1px solid var(--ink);border-radius:8px;background:#fff;font:600 14px inherit;margin:2px 0}
@@ -29,8 +29,9 @@ button.x{grid-column:2;grid-row:1;border:0;background:none;color:var(--red);font
 .sc label:has(input:checked){background:var(--ink);color:#fff;border-color:var(--ink)}
 .sc input{position:absolute;opacity:0;width:0}
 .ok{color:#0a7a3d;font-weight:600}
+.big{font-size:20px;line-height:1.55}
 small{color:var(--mut)}
-@media(min-width:600px){.row{grid-template-columns:240px 1fr auto}.row select,.row input{grid-column:auto}button.x{grid-column:auto;grid-row:auto}}
+@media(min-width:600px){.row{grid-template-columns:240px 1fr auto}.row select,.row input,.row textarea{grid-column:auto}button.x{grid-column:auto;grid-row:auto}}
 </style>
 </head>
 <body>
@@ -121,8 +122,10 @@ function view(){
   $("#nav").style.display=logged?"flex":"none";
   $("#ganti").hidden=!logged;
   $("#who").textContent=me;
+  const gr=me==="Guru";if(gr)tab="guru";
+  document.querySelectorAll("nav button").forEach(b=>{b.style.display=gr&&b.dataset.tab!=="guru"?"none":"";b.classList.toggle("on",b.dataset.tab===tab)});
   if(!logged){
-    $("#app").innerHTML=`<div class="card"><h2>Nama kelompok</h2><p class="m">Satu HP untuk satu kelompok. Isi nama kelompok dan semua anggota.</p><input id="nm" placeholder="Nama kelompok, contoh: Kelompok 1"><div style="margin-top:8px">${[1,2,3,4].map(n=>`<input class="ag" placeholder="Nama anggota ${n}" style="margin-bottom:8px">`).join("")}<button class="s" data-addag="1">+ Tambah anggota</button></div><button class="p" id="masuk" style="margin-top:10px">Masuk</button></div>`;
+    $("#app").innerHTML=`<div class="card"><h2>Nama kelompok</h2><p class="m">Satu HP untuk satu kelompok. Isi nama kelompok dan semua anggota.</p><input id="nm" placeholder="Nama kelompok, contoh: Kelompok 1"><div style="margin-top:8px">${[1,2,3,4].map(n=>`<input class="ag" placeholder="Nama anggota ${n}" style="margin-bottom:8px">`).join("")}<button class="s" data-addag="1">+ Tambah anggota</button></div><button class="p" id="masuk" style="margin-top:10px">Masuk</button><button class="s" id="jadiguru">Masuk sebagai guru</button></div>`;
     return;
   }
   if(tab==="kerja")kerja();else if(tab==="nilai")nilai();else guru();
@@ -137,13 +140,19 @@ function kerja(){
   const sub=(D.submissions||{})[K(me)];
   $("#app").innerHTML=`<div class="card"><h2>Kasus ${k}: ${c.t}</h2><p>${c.s}</p><p class="m">Rancang gerakan bertahan dari jurus 1 dan 2 untuk tiap serangan. Netralkan serangan sampai penyerang berhenti, lalu mundur dan cari bantuan. Tanpa kontak.</p></div>`
    +c.a.map((a,i)=>`<div class="card"><b>Serangan ${i+1}:</b> ${a}<div id="r${i}"></div><button class="s" data-add="${i}">+ Tambah jurus</button></div>`).join("")
-   +`<button class="p" id="kum">${sub?"Kumpulkan ulang":"Kumpulkan"}</button>`+(sub?'<p class="ok">Jawaban sudah terkumpul.</p>':"");
+   +`<button class="p" id="kum">${sub?"Kumpulkan ulang":"Kumpulkan"}</button>`+(sub?'<p class="ok">Jawaban sudah terkumpul.</p><button class="s" id="baca">Mode tampil (untuk dibaca saat presentasi)</button>':"");
   W.forEach((_,i)=>rows(i));
 }
 function rows(i){
-  $("#r"+i).innerHTML=W[i].map((r,j)=>`<div class="row"><select data-i="${i}" data-j="${j}" data-f="g">${opts(r.g)}</select><input data-i="${i}" data-j="${j}" data-f="d" placeholder="Deskripsikan gerakanmu sendiri" value="${esc(r.d)}">${W[i].length>1?`<button class="x" data-del="${i},${j}" aria-label="Hapus">✕</button>`:""}</div>`).join("");
+  $("#r"+i).innerHTML=W[i].map((r,j)=>`<div class="row"><select data-i="${i}" data-j="${j}" data-f="g">${opts(r.g)}</select><textarea rows="3" data-i="${i}" data-j="${j}" data-f="d" placeholder="Deskripsikan gerakanmu sendiri (tulis selengkap mungkin)">${esc(r.d)}</textarea>${W[i].length>1?`<button class="x" data-del="${i},${j}" aria-label="Hapus">✕</button>`:""}</div>`).join("");
 }
 
+function baca(){
+  const k=cid(),c=C[k],sb=((D.submissions||{})[K(me)]||{}).jawab;
+  $("#app").innerHTML=`<button class="s" id="kembali">← Kembali</button><div class="card big"><b>Kasus ${k}: ${c.t}</b><p>${c.s}</p></div>`
+   +c.a.map((a,i)=>`<div class="card big"><b>Serangan ${i+1}</b><p>${a}</p><b>Gerakan bertahan</b>${(sb?sb[i].balasan:W[i]).map((r,j)=>`<p><b>${j+1}. ${esc(r.g)}</b><br>${esc(r.d).replace(/\n/g,"<br>")}</p>`).join("")}</div>`).join("");
+  scrollTo(0,0);
+}
 function nilai(){
   $("#app").innerHTML=`<div class="card"><h2>Nilai kelompok yang tampil</h2><p class="m" id="tp"></p><select id="tg"></select></div>`
    +IND.map((t,i)=>`<div class="card"><b>${i+1}.</b> ${t}<div class="sc">${[1,2,3,4].map(n=>`<label><input type="radio" name="n${i}" value="${n}">${n}</label>`).join("")}</div></div>`).join("")
@@ -160,7 +169,7 @@ function fillTg(){
 
 function guru(){
   if(!gOK){
-    if(prompt("PIN guru")!==PIN){tab="kerja";document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab==="kerja"));return view()}
+    if(prompt("PIN guru")!==PIN){tab="kerja";if(me==="Guru"){me="";localStorage.removeItem("kel")}return view()}
     gOK=true;
   }
   const S=D.submissions||{},N=D.scores||{};
@@ -218,7 +227,7 @@ async function reset(){
 
 document.addEventListener("click",e=>{
   const t=e.target,d=t.dataset||{};
-  if(t.id==="masuk"){const v=$("#nm").value.trim(),a=[...document.querySelectorAll(".ag")].map(x=>x.value.trim()).filter(Boolean);if(!v)return alert("Isi nama kelompok.");if(!a.length)return alert("Isi minimal satu nama anggota.");me=v;localStorage.setItem("kel",v);set(ref(db,"anggota/"+K(v)),{kel:v,anggota:a});view()}
+  if(t.id==="masuk"){const v=$("#nm").value.trim(),a=[...document.querySelectorAll(".ag")].map(x=>x.value.trim()).filter(Boolean);if(!v)return alert("Isi nama kelompok.");if(v.toLowerCase()==="guru")return alert("Nama itu dipakai untuk guru.");if(!a.length)return alert("Isi minimal satu nama anggota.");me=v;localStorage.setItem("kel",v);set(ref(db,"anggota/"+K(v)),{kel:v,anggota:a});view()}
   else if(d.addag!==undefined){const i=document.createElement("input");i.className="ag";i.style.marginBottom="8px";i.placeholder="Nama anggota "+(document.querySelectorAll(".ag").length+1);t.before(i);i.focus()}
   else if(t.id==="ganti"){if(confirm("Ganti nama kelompok di HP ini?")){localStorage.removeItem("kel");localStorage.removeItem("work");location.reload()}}
   else if(t.id==="acak")acak();
@@ -227,6 +236,9 @@ document.addEventListener("click",e=>{
   else if(t.id==="kum")kum();
   else if(t.id==="kirim")kirim();
   else if(t.id==="csv")csv();
+  else if(t.id==="baca")baca();
+  else if(t.id==="kembali")view();
+  else if(t.id==="jadiguru"){me="Guru";localStorage.setItem("kel","Guru");tab="guru";view()}
   else if(d.tampil!==undefined)set(ref(db,"tampil"),d.tampil);
   else if(t.id==="reset")reset();
   else if(d.tab){tab=d.tab;document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b===t));view()}
