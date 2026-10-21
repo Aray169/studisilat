@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studi Kasus Jurus</title>
+<style>
+:root{--ink:#16181d;--red:#c8102e;--bg:#eceef1;--card:#fff;--line:#d3d7de;--mut:#5b6472}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--ink);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:4px solid var(--red)}
+header b{font-size:18px}
+header button{background:none;border:1px solid #666;color:#fff;border-radius:8px;padding:4px 10px}
+nav{display:none;position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line)}
+nav button{flex:1;padding:13px 4px;border:0;background:none;font:600 15px inherit;color:var(--mut);border-bottom:3px solid transparent}
+nav button.on{color:var(--red);border-color:var(--red)}
+main{max-width:720px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.card h2{margin:0 0 6px;font-size:18px}
+.m{color:var(--mut);font-size:14px}
+.row{display:grid;grid-template-columns:1fr auto;gap:6px;margin:8px 0;padding:8px;background:#f6f7f9;border-radius:8px}
+.row select,.row input{grid-column:1/-1}
+select,input,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+button.p{width:100%;padding:14px;border:0;border-radius:10px;background:var(--red);color:#fff;font:700 16px inherit;margin:4px 0 12px}
+button.s{padding:9px 12px;border:1px solid var(--ink);border-radius:8px;background:#fff;font:600 14px inherit;margin:2px 0}
+button.x{grid-column:2;grid-row:1;border:0;background:none;color:var(--red);font-size:18px}
+.sc{display:flex;gap:8px;margin-top:8px}
+.sc label{flex:1;text-align:center;border:1px solid var(--line);border-radius:8px;padding:10px 0;font-weight:700}
+.sc label:has(input:checked){background:var(--ink);color:#fff;border-color:var(--ink)}
+.sc input{position:absolute;opacity:0;width:0}
+.ok{color:#0a7a3d;font-weight:600}
+small{color:var(--mut)}
+@media(min-width:600px){.row{grid-template-columns:240px 1fr auto}.row select,.row input{grid-column:auto}button.x{grid-column:auto;grid-row:auto}}
+</style>
+</head>
+<body>
+<header><b>Studi Kasus Jurus</b><span><span id="who"></span> <button id="ganti" hidden>Ganti</button></span></header>
+<nav id="nav">
+<button data-tab="kerja" class="on">Kerjakan</button>
+<button data-tab="nilai">Nilai Kelompok</button>
+<button data-tab="guru">Guru</button>
+</nav>
+<main id="app"></main>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getDatabase,ref,set,remove,onValue,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+/* ISI DENGAN KONFIGURASI FIREBASE KAMU */
+const cfg={
+  apiKey:"AIzaSyCEpN834EqKbN2kfTPGU0enLIlV4u5w-uc",
+  authDomain:"studi-kasus-silat.firebaseapp.com",
+  databaseURL:"https://studi-kasus-silat-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"studi-kasus-silat",
+  appId:"1:45841929789:web:49b9e06d1bc25b1d663c54"
+};
+const PIN="guru123"; /* ganti PIN menu Guru */
+
+const db=getDatabase(initializeApp(cfg));
+const G=["A1 Sikap pasang selup kanan","A2 Tepuk - sisir - dobrak","A3 Tangkap kanan, tarik ke rusuk","A4 Angkat lutut kiri, patahkan dua tangan","A5 Tendangan loncat kanan lurus","A6 Pukul kanan depan, robah arah kiri","A7 Pasang rendah kaki kiri depan","B1.4 Interval: balik arah kiri, kuda-kuda belakang","B2 Tangkapan kanan, sikut kiri samping","B3 Tendangan depan kiri","B4 Pukulan depan kanan selewa","B5 Tangkap, sikuan atas kiri","B6 Gedig bawah, duduk"];
+const C={
+1:{t:"Dihadang sepulang sekolah",s:"Di jalan sepi, seorang siswa dihadang dan dipaksa menyerahkan uang jajan.",a:["Mendorong dada dengan dua tangan","Mencekal pergelangan tangan kanan","Memukul lurus ke arah dada"]},
+2:{t:"Dicekal di tempat ramai",s:"Di halte atau pasar, seseorang memaksa menarik korban pergi.",a:["Mencekal pergelangan tangan","Menarik paksa ke arahnya","Mencekal bahu atau kerah dari atas"]},
+3:{t:"Teman dirundung",s:"Siswa lemah dirundung di kantin, lalu kamu datang melerai.",a:["Mendorong bahu korban","Memukul lurus ke arah korban","Menghadang dan mendorong pembela"]},
+4:{t:"Dihadang di parkiran",s:"Penyerang memaksa merebut tas milik korban.",a:["Mendorong dengan satu tangan","Memukul lurus","Menendang lurus ke arah badan"]},
+5:{t:"Diserang dengan benda",s:"Penyerang mengayunkan tas atau botol plastik karena emosi.",a:["Mengayun benda dari samping","Mengayun benda dari atas","Menendang lurus"]}
+};
+const IND=["Ketepatan gerakan jurus","Kesesuaian gerakan dengan serangan","Kreativitas dan logika rangkaian bertahan","Esensi silat: bertahan, berhenti, cari bantuan","Kerja sama dan keselamatan (tanpa kontak)"];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const K=n=>n.trim().replace(/[.#$\[\]\/]/g,"_");
+let D={},me=localStorage.getItem("kel")||"",tab="kerja",gOK=false,lastHc=null;
+let W=JSON.parse(localStorage.getItem("work")||"null")||[0,1,2].map(()=>[{g:"",d:""}]);
+const save=()=>localStorage.setItem("work",JSON.stringify(W));
+const cid=()=>{const k=Object.keys(D.assign||{}).find(k=>D.assign[k]===me);return k?k.slice(1):null};
+const opts=v=>'<option value="">Pilih gerakan jurus</option>'+G.map(x=>`<option${x===v?" selected":""}>${esc(x)}</option>`).join("");
+
+function view(){
+  const logged=!!me;
+  $("#nav").style.display=logged?"flex":"none";
+  $("#ganti").hidden=!logged;
+  $("#who").textContent=me;
+  if(!logged){
+    $("#app").innerHTML=`<div class="card"><h2>Nama kelompok</h2><p class="m">Satu HP untuk satu kelompok.</p><input id="nm" placeholder="Contoh: Kelompok 1"><button class="p" id="masuk" style="margin-top:10px">Masuk</button></div>`;
+    return;
+  }
+  if(tab==="kerja")kerja();else if(tab==="nilai")nilai();else guru();
+}
+
+function kerja(){
+  const k=cid(),c=C[k];
+  if(!c){
+    $("#app").innerHTML=`<div class="card"><h2>Studi kasus</h2><p class="m">Tekan tombol untuk mendapat studi kasus secara acak.</p></div><button class="p" id="acak">Dapatkan studi kasus</button>`;
+    return;
+  }
+  const sub=(D.submissions||{})[K(me)];
+  $("#app").innerHTML=`<div class="card"><h2>Kasus ${k}: ${c.t}</h2><p>${c.s}</p><p class="m">Rancang gerakan bertahan dari jurus 1 dan 2 untuk tiap serangan. Netralkan serangan sampai penyerang berhenti, lalu mundur dan cari bantuan. Tanpa kontak.</p></div>`
+   +c.a.map((a,i)=>`<div class="card"><b>Serangan ${i+1}:</b> ${a}<div id="r${i}"></div><button class="s" data-add="${i}">+ Tambah jurus</button></div>`).join("")
+   +`<button class="p" id="kum">${sub?"Kumpulkan ulang":"Kumpulkan"}</button>`+(sub?'<p class="ok">Jawaban sudah terkumpul.</p>':"");
+  W.forEach((_,i)=>rows(i));
+}
+function rows(i){
+  $("#r"+i).innerHTML=W[i].map((r,j)=>`<div class="row"><select data-i="${i}" data-j="${j}" data-f="g">${opts(r.g)}</select><input data-i="${i}" data-j="${j}" data-f="d" placeholder="Deskripsikan gerakanmu sendiri" value="${esc(r.d)}">${W[i].length>1?`<button class="x" data-del="${i},${j}" aria-label="Hapus">✕</button>`:""}</div>`).join("");
+}
+
+function nilai(){
+  $("#app").innerHTML=`<div class="card"><h2>Nilai kelompok yang tampil</h2><select id="tg"></select></div>`
+   +IND.map((t,i)=>`<div class="card"><b>${i+1}.</b> ${t}<div class="sc">${[1,2,3,4].map(n=>`<label><input type="radio" name="n${i}" value="${n}">${n}</label>`).join("")}</div></div>`).join("")
+   +`<div class="card"><textarea id="kom" rows="3" placeholder="Komentar untuk kelompok ini"></textarea></div><button class="p" id="kirim">Kirim nilai</button>`;
+  fillTg();
+}
+function fillTg(){
+  const s=$("#tg");if(!s)return;
+  const v=s.value,l=Object.values(D.assign||{}).filter(n=>n!==me);
+  s.innerHTML='<option value="">Pilih kelompok</option>'+l.map(n=>`<option${n===v?" selected":""}>${esc(n)}</option>`).join("");
+}
+
+function guru(){
+  if(!gOK){
+    if(prompt("PIN guru")!==PIN){tab="kerja";document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab==="kerja"));return view()}
+    gOK=true;
+  }
+  const S=D.submissions||{},N=D.scores||{};
+  $("#app").innerHTML=`<button class="s" id="csv">Unduh CSV</button> <button class="s" id="reset">Reset semua data</button><div style="height:10px"></div>`
+   +(Object.values(D.assign||{}).map(n=>{
+     const s=S[K(n)],sc=Object.values(N[K(n)]||{});
+     const avg=IND.map((_,i)=>sc.length?(sc.reduce((a,x)=>a+x.n[i],0)/sc.length).toFixed(1):"-");
+     return `<div class="card"><b>${esc(n)}</b> (kasus ${esc(s?s.kasus:"-")}) ${s?'<span class="ok">terkumpul</span>':"<small>belum mengumpulkan</small>"}`
+      +(s?s.jawab.map(j=>`<p><b>${esc(j.serangan)}</b>${j.balasan.map(r=>`<br>• ${esc(r.g)}: ${esc(r.d)}`).join("")}</p>`).join(""):"")
+      +`<p class="m">Dinilai ${sc.length} kelompok. Rata-rata indikator 1-5: ${avg.join(" / ")}</p>`
+      +sc.map(x=>x.kom?`<small>${esc(x.dari)}: ${esc(x.kom)}</small><br>`:"").join("")+`</div>`;
+   }).join("")||'<div class="card m">Belum ada kelompok yang mengambil studi kasus.</div>');
+}
+
+async function acak(){
+  const r=await runTransaction(ref(db,"assign"),cur=>{
+    cur=cur||{};
+    if(Object.values(cur).includes(me))return;
+    const f=[1,2,3,4,5].filter(i=>!cur["k"+i]);
+    if(!f.length)return;
+    cur["k"+f[Math.random()*f.length|0]]=me;
+    return cur;
+  });
+  if(!r.committed&&!cid())alert("Semua studi kasus sudah terpakai.");
+}
+async function kum(){
+  const k=cid();
+  if(W.some(a=>a.some(r=>!r.g||!r.d.trim())))return alert("Lengkapi pilihan gerakan dan deskripsi di semua kolom.");
+  await set(ref(db,"submissions/"+K(me)),{kel:me,kasus:k,jawab:W.map((a,i)=>({serangan:C[k].a[i],balasan:a})),waktu:Date.now()});
+  alert("Jawaban terkumpul.");
+}
+async function kirim(){
+  const t=$("#tg").value;
+  if(!t)return alert("Pilih kelompok yang dinilai.");
+  const n=IND.map((_,i)=>+(document.querySelector(`input[name=n${i}]:checked`)||{}).value);
+  if(n.some(x=>!x))return alert("Isi skor 1-4 untuk kelima indikator.");
+  await set(ref(db,`scores/${K(t)}/${K(me)}`),{dari:me,untuk:t,n,kom:$("#kom").value.trim()});
+  alert("Nilai terkirim.");nilai();
+}
+function csv(){
+  const q=s=>'"'+String(s).replace(/"/g,'""')+'"',S=D.submissions||{},N=D.scores||{};
+  const o=[["Kelompok","Kasus","Serangan","Gerakan","Deskripsi"]];
+  Object.values(S).forEach(s=>s.jawab.forEach(j=>j.balasan.forEach(r=>o.push([s.kel,s.kasus,j.serangan,r.g,r.d]))));
+  o.push([],["Penilai","Dinilai",...IND,"Komentar"]);
+  Object.values(N).forEach(t=>Object.values(t).forEach(x=>o.push([x.dari,x.untuk,...x.n,x.kom||""])));
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob(["\ufeff"+o.map(r=>r.map(q).join(",")).join("\n")],{type:"text/csv"}));
+  a.download="hasil_studi_kasus.csv";a.click();
+}
+async function reset(){
+  if(!confirm("Hapus semua pembagian kasus, jawaban, dan nilai?"))return;
+  await Promise.all(["assign","submissions","scores"].map(p=>remove(ref(db,p))));
+  localStorage.removeItem("work");W=[0,1,2].map(()=>[{g:"",d:""}]);
+}
+
+document.addEventListener("click",e=>{
+  const t=e.target,d=t.dataset||{};
+  if(t.id==="masuk"){const v=$("#nm").value.trim();if(!v)return;me=v;localStorage.setItem("kel",v);view()}
+  else if(t.id==="ganti"){if(confirm("Ganti nama kelompok di HP ini?")){localStorage.removeItem("kel");localStorage.removeItem("work");location.reload()}}
+  else if(t.id==="acak")acak();
+  else if(d.add!==undefined){W[+d.add].push({g:"",d:""});save();rows(+d.add)}
+  else if(d.del){const[i,j]=d.del.split(",").map(Number);W[i].splice(j,1);save();rows(i)}
+  else if(t.id==="kum")kum();
+  else if(t.id==="kirim")kirim();
+  else if(t.id==="csv")csv();
+  else if(t.id==="reset")reset();
+  else if(d.tab){tab=d.tab;document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b===t));view()}
+});
+document.addEventListener("input",e=>{
+  const d=e.target.dataset;
+  if(d&&d.f){W[d.i][d.j][d.f]=e.target.value;save()}
+});
+
+onValue(ref(db),s=>{
+  D=s.val()||{};
+  const hc=!!cid();
+  if(tab==="kerja"){if(hc!==lastHc)view()}
+  else if(tab==="nilai")fillTg();
+  else guru();
+  lastHc=hc;
+},err=>alert("Tidak terhubung ke server: "+err.message));
+view();
+</script>
+</body>
+</html>
