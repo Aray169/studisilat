@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Studi Kasus Jurus</title>
+<title>LKPD Pencak Silat</title>
 <style>
 :root{--ink:#16181d;--red:#c8102e;--bg:#eceef1;--card:#fff;--line:#d3d7de;--mut:#5b6472}
 *{box-sizing:border-box}
@@ -34,7 +34,7 @@ small{color:var(--mut)}
 </style>
 </head>
 <body>
-<header><b>Studi Kasus Jurus</b><span><span id="who"></span> <button id="ganti" hidden>Ganti</button></span></header>
+<header><b>LKPD Pencak Silat</b><span><span id="who"></span> <button id="ganti" hidden>Ganti</button></span></header>
 <nav id="nav">
 <button data-tab="kerja" class="on">Kerjakan</button>
 <button data-tab="nilai">Nilai Kelompok</button>
@@ -122,7 +122,7 @@ function view(){
   $("#ganti").hidden=!logged;
   $("#who").textContent=me;
   if(!logged){
-    $("#app").innerHTML=`<div class="card"><h2>Nama kelompok</h2><p class="m">Satu HP untuk satu kelompok. Isi nama kelompok dan semua anggota.</p><input id="nm" placeholder="Nama kelompok, contoh: Kelompok 1"><textarea id="ang" rows="5" placeholder="Nama anggota (satu nama per baris)" style="margin-top:8px"></textarea><button class="p" id="masuk" style="margin-top:10px">Masuk</button></div>`;
+    $("#app").innerHTML=`<div class="card"><h2>Nama kelompok</h2><p class="m">Satu HP untuk satu kelompok. Isi nama kelompok dan semua anggota.</p><input id="nm" placeholder="Nama kelompok, contoh: Kelompok 1"><div style="margin-top:8px">${[1,2,3,4].map(n=>`<input class="ag" placeholder="Nama anggota ${n}" style="margin-bottom:8px">`).join("")}<button class="s" data-addag="1">+ Tambah anggota</button></div><button class="p" id="masuk" style="margin-top:10px">Masuk</button></div>`;
     return;
   }
   if(tab==="kerja")kerja();else if(tab==="nilai")nilai();else guru();
@@ -218,7 +218,8 @@ async function reset(){
 
 document.addEventListener("click",e=>{
   const t=e.target,d=t.dataset||{};
-  if(t.id==="masuk"){const v=$("#nm").value.trim(),a=$("#ang").value.trim();if(!v)return;if(!a)return alert("Isi nama anggota kelompok.");me=v;localStorage.setItem("kel",v);set(ref(db,"anggota/"+K(v)),{kel:v,anggota:a.split("\n").map(x=>x.trim()).filter(Boolean)});view()}
+  if(t.id==="masuk"){const v=$("#nm").value.trim(),a=[...document.querySelectorAll(".ag")].map(x=>x.value.trim()).filter(Boolean);if(!v)return alert("Isi nama kelompok.");if(!a.length)return alert("Isi minimal satu nama anggota.");me=v;localStorage.setItem("kel",v);set(ref(db,"anggota/"+K(v)),{kel:v,anggota:a});view()}
+  else if(d.addag!==undefined){const i=document.createElement("input");i.className="ag";i.style.marginBottom="8px";i.placeholder="Nama anggota "+(document.querySelectorAll(".ag").length+1);t.before(i);i.focus()}
   else if(t.id==="ganti"){if(confirm("Ganti nama kelompok di HP ini?")){localStorage.removeItem("kel");localStorage.removeItem("work");location.reload()}}
   else if(t.id==="acak")acak();
   else if(d.add!==undefined){W[+d.add].push({g:"",d:""});save();rows(+d.add)}
@@ -238,7 +239,7 @@ document.addEventListener("input",e=>{
 onValue(ref(db),s=>{
   D=s.val()||{};
   const hc=!!cid();
-  if(tab==="kerja"){if(hc!==lastHc)view()}
+  if(tab==="kerja"){if(hc!==lastHc&&me)view()}
   else if(tab==="nilai")fillTg();
   else guru();
   lastHc=hc;
